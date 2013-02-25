@@ -1,15 +1,22 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
-let s:outputter = {
-\	"name" : "replace_region",
-\	"kind" : "outputter",
-\	"config" : {
+
+let s:outputter = quickrun#outputter#buffered#new()
+let s:outputter.name = "replace_region"
+let s:outputter.kind = "outputter"
+let s:outputter.config = {
+\	'errorformat': '',
 \		"first" : "0",
 \		"last"  : "0",
 \		"back_cursor" : "0"
-\	}
-\}
+\ }
+
+let s:outputter.init_buffered = s:outputter.init
+
+function! s:outputter.init(session)
+	call self.init_buffered(a:session)
+endfunction
 
 
 function! s:pos(lnum, col, ...)
@@ -29,7 +36,8 @@ function! s:delete(first, last)
 endfunction
 
 
-function! s:outputter.output(data, session)
+function! s:outputter.finish(session)
+	let data = self._result
 	let region = a:session.config.region
 	let first = self.config.first == 0 ? [0] + region.first : s:pos(self.config.first, 0)
 	let last  = self.config.last  == 0 ? [0] + region.last  : s:pos(self.config.last,  0)
@@ -40,7 +48,7 @@ function! s:outputter.output(data, session)
 	try
 		let tmp = @*
 		call s:delete(first, last)
-		let data = substitute(a:data, "\r\n", "\n", "g")
+		let data = substitute(data, "\r\n", "\n", "g")
 		let @* = join(split(data, "\n"), "\n")
 		if empty(@*)
 			return
